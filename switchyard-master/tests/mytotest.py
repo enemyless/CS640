@@ -67,20 +67,23 @@ def switch_tests():
     # result in nothing happening
     reqpkt = mk_pkt("30:00:00:00:00:01", "10:00:00:00:00:01", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth2", reqpkt, display=Ethernet), "An Ethernet frame should arrive on eth2 with destination address the same as eth2's MAC address")
-    s.expect(PacketInputTimeoutEvent(1.0), "The switch should not do anything in response to a frame arriving with a destination address referring to the switch itself.")
+    s.expect(PacketInputTimeoutEvent(1.0), "the switch should not do anything in response to a frame arriving with a destination address referring to the switch itself.")
    
-    time.sleep(5)
     # test case 7
     testpkt = mk_pkt("30:00:00:00:00:01", "30:00:00:00:00:08", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth3", testpkt, display=Ethernet), "from 30:00:00:00:00:01 to 30:00:00:00:00:04 arrives on eth3")
     s.expect(PacketOutputEvent("eth1", testpkt , display=Ethernet), "eth1")
 
+    # use as delay, cannot use time.sleep() since maybe all the events are pushed in a queue here, so delay here doesn't take any effect.
+    s.expect(PacketInputTimeoutEvent(5.0), "use timeout as delay (5s), cannot use time.sleep() since maybe all the events are pushed in a queue here, so delay here doesn't take any effect.")
     # test case 8
     testpkt = mk_pkt("30:00:00:00:00:08", "30:00:00:00:00:13", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth3", testpkt, display=Ethernet), "from 30:00:00:00:00:08 to 30:00:00:00:00:13 arrives on eth3")
     s.expect(PacketOutputEvent("eth2", testpkt , display=Ethernet), "eth2")
+    
+    # use as delay, cannot use time.sleep() since maybe all the events are pushed in a queue here, so delay here doesn't take any effect.
+    s.expect(PacketInputTimeoutEvent(5.0), "use timeout as delay (5s), cannot use time.sleep() since maybe all the events are pushed in a queue here, so delay here doesn't take any effect.")
 
-    time.sleep(50)
     # test case 9
     testpkt = mk_pkt("30:00:00:00:00:08", "30:00:00:00:00:09", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth3", testpkt, display=Ethernet), "from 30:00:00:00:00:08 to 30:00:00:00:00:09 arrives on eth3")
@@ -89,7 +92,7 @@ def switch_tests():
     # test case 10
     testpkt = mk_pkt("30:00:00:00:00:13", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth2", testpkt, display=Ethernet), "from 30:00:00:00:00:13 to 30:00:00:00:00:01 arrives on eth2")
-    s.expect(PacketOutputEvent("eth1", testpkt, "eth2", testpkt, "eth3", testpkt , display=Ethernet), "flood due to timeout")
+    s.expect(PacketOutputEvent("eth0", testpkt, "eth1", testpkt, "eth3", testpkt , display=Ethernet), "flood due to timeout")
 
     return s
 

@@ -32,7 +32,7 @@ def switchy_main(net):
             return
 
         curTime = time.time();
-        print ("%f\n" % (curTime))
+        #print ("%f\n" % (curTime))
         for item in switchTable:
             if curTime - item.time >= 10.0:
                 switchTable.remove(item);
@@ -47,8 +47,8 @@ def switchy_main(net):
         if update == 0:
             switchTable.insert(0,switchTableElement(packet[0].src,dev,curTime))
 
-        for item in switchTable:
-            item.display()
+        #for item in switchTable:
+        #    item.display()
             
         log_debug ("In {} received packet {} on {}".format(net.name, packet, dev))
         if packet[0].dst in mymacs:
