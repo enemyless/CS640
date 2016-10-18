@@ -65,7 +65,6 @@ def switchy_main(net):
                     net.send_packet(item.dev, packet)
                     flood = 0
                     break
-            
             if flood == 1:       
                 for intf in my_interfaces:
                     if dev != intf.name:
