@@ -10,6 +10,7 @@ that doesn't learn.)
 from switchyard.lib.address import *
 from switchyard.lib.packet import *
 from switchyard.lib.common import *
+import operator
 
 class switchTableElement(object):
     def __init__(self,mac=None,dev=None):
@@ -47,7 +48,7 @@ def switchy_main(net):
             if itemCnt != maxCnt:
                 itemCnt = itemCnt + 1
             else:
-                switchTable.sort(key=traffic)
+                switchTable.sort(key=operator.attrgetter('traffic'))
                 del switchTable[0]
             
             switchTable.insert(0,switchTableElement(packet[0].src,dev))

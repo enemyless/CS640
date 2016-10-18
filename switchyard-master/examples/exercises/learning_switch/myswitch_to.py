@@ -31,7 +31,7 @@ def switchy_main(net):
         curTime = time.time();
         print ("%d\n" % (curTime))
         for item in switchTable:
-            if curTime - item.time >= 100000000000:
+            if curTime - item.time >= 10:
                 switchTable.remove(item);
         try:
             dev,packet = net.recv_packet()
