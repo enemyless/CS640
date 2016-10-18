@@ -42,7 +42,7 @@ mac=30:00:00:00:00:04,dev=eth1,traffic=0
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=0
 
-mac=30:00:00:00:00:02,dev=eth2,traffic=0
+mac=30:00:00:00:00:02,dev=eth2,traffic=1
 
 mac=30:00:00:00:00:01,dev=eth1,traffic=2
 
@@ -51,7 +51,7 @@ mac=30:00:00:00:00:05,dev=eth0,traffic=0
 
 mac=30:00:00:00:00:04,dev=eth1,traffic=0
 
-mac=30:00:00:00:00:03,dev=eth3,traffic=0
+mac=30:00:00:00:00:03,dev=eth3,traffic=1
 
 mac=30:00:00:00:00:02,dev=eth2,traffic=2
 
@@ -60,7 +60,7 @@ mac=30:00:00:00:00:01,dev=eth1,traffic=2
 itemCnt=5
 mac=30:00:00:00:00:05,dev=eth0,traffic=0
 
-mac=30:00:00:00:00:04,dev=eth1,traffic=0
+mac=30:00:00:00:00:04,dev=eth1,traffic=1
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=2
 
@@ -69,7 +69,7 @@ mac=30:00:00:00:00:02,dev=eth2,traffic=2
 mac=30:00:00:00:00:01,dev=eth1,traffic=2
 
 itemCnt=5
-mac=30:00:00:00:00:05,dev=eth0,traffic=0
+mac=30:00:00:00:00:05,dev=eth0,traffic=1
 
 mac=30:00:00:00:00:04,dev=eth1,traffic=2
 
@@ -86,7 +86,7 @@ mac=30:00:00:00:00:04,dev=eth1,traffic=2
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=2
 
-mac=30:00:00:00:00:02,dev=eth2,traffic=2
+mac=30:00:00:00:00:02,dev=eth2,traffic=3
 
 mac=30:00:00:00:00:01,dev=eth1,traffic=3
 
@@ -95,7 +95,7 @@ mac=30:00:00:00:00:05,dev=eth0,traffic=1
 
 mac=30:00:00:00:00:04,dev=eth1,traffic=2
 
-mac=30:00:00:00:00:03,dev=eth3,traffic=2
+mac=30:00:00:00:00:03,dev=eth3,traffic=3
 
 mac=30:00:00:00:00:02,dev=eth2,traffic=4
 
@@ -104,7 +104,7 @@ mac=30:00:00:00:00:01,dev=eth1,traffic=3
 itemCnt=5
 mac=30:00:00:00:00:05,dev=eth0,traffic=1
 
-mac=30:00:00:00:00:04,dev=eth1,traffic=2
+mac=30:00:00:00:00:04,dev=eth1,traffic=3
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=4
 
@@ -113,7 +113,7 @@ mac=30:00:00:00:00:02,dev=eth2,traffic=4
 mac=30:00:00:00:00:01,dev=eth1,traffic=3
 
 itemCnt=5
-mac=30:00:00:00:00:05,dev=eth0,traffic=1
+mac=30:00:00:00:00:05,dev=eth0,traffic=2
 
 mac=30:00:00:00:00:04,dev=eth1,traffic=4
 
@@ -128,7 +128,7 @@ mac=30:00:00:00:00:06,dev=eth2,traffic=0
 
 mac=30:00:00:00:00:01,dev=eth1,traffic=3
 
-mac=30:00:00:00:00:04,dev=eth1,traffic=4
+mac=30:00:00:00:00:04,dev=eth1,traffic=5
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=4
 
@@ -139,7 +139,7 @@ mac=30:00:00:00:00:06,dev=eth2,traffic=1
 
 mac=30:00:00:00:00:01,dev=eth1,traffic=3
 
-mac=30:00:00:00:00:04,dev=eth1,traffic=5
+mac=30:00:00:00:00:04,dev=eth1,traffic=6
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=4
 
@@ -150,7 +150,7 @@ mac=30:00:00:00:00:06,dev=eth2,traffic=2
 
 mac=30:00:00:00:00:01,dev=eth1,traffic=3
 
-mac=30:00:00:00:00:04,dev=eth1,traffic=6
+mac=30:00:00:00:00:04,dev=eth1,traffic=7
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=4
 
@@ -165,7 +165,7 @@ mac=30:00:00:00:00:04,dev=eth1,traffic=7
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=4
 
-mac=30:00:00:00:00:02,dev=eth2,traffic=4
+mac=30:00:00:00:00:02,dev=eth2,traffic=5
 
 itemCnt=5
 mac=30:00:00:00:00:06,dev=eth2,traffic=4
@@ -176,21 +176,10 @@ mac=30:00:00:00:00:04,dev=eth1,traffic=7
 
 mac=30:00:00:00:00:03,dev=eth3,traffic=4
 
-mac=30:00:00:00:00:02,dev=eth2,traffic=5
-
-itemCnt=5
-mac=30:00:00:00:00:06,dev=eth1,traffic=5
-
-mac=30:00:00:00:00:01,dev=eth1,traffic=3
-
-mac=30:00:00:00:00:04,dev=eth1,traffic=7
-
-mac=30:00:00:00:00:03,dev=eth3,traffic=4
-
 mac=30:00:00:00:00:02,dev=eth2,traffic=6
 
 itemCnt=5
-mac=30:00:00:00:00:06,dev=eth0,traffic=6
+mac=30:00:00:00:00:06,dev=eth1,traffic=5
 
 mac=30:00:00:00:00:01,dev=eth1,traffic=3
 
@@ -217,13 +206,13 @@ Passed:
         Expected event: send_packet(s) Ethernet
         30:00:00:00:00:01->30:00:00:00:00:02 IP | IPv4
         172.16.42.1->172.16.42.2 ICMP | ICMP EchoRequest 0 0 (0 data
+        bytes) out eth0 and Ethernet
+        30:00:00:00:00:01->30:00:00:00:00:02 IP | IPv4
+        172.16.42.1->172.16.42.2 ICMP | ICMP EchoRequest 0 0 (0 data
         bytes) out eth3 and Ethernet
         30:00:00:00:00:01->30:00:00:00:00:02 IP | IPv4
         172.16.42.1->172.16.42.2 ICMP | ICMP EchoRequest 0 0 (0 data
-        bytes) out eth2 and Ethernet
-        30:00:00:00:00:01->30:00:00:00:00:02 IP | IPv4
-        172.16.42.1->172.16.42.2 ICMP | ICMP EchoRequest 0 0 (0 data
-        bytes) out eth0
+        bytes) out eth2
 3   An Ethernet frame with a broadcast destination address
     should arrive on eth0
         Expected event: recv_packet Ethernet
@@ -289,13 +278,13 @@ Passed:
         Expected event: send_packet(s) Ethernet
         30:00:00:00:00:04->30:00:00:00:00:05 IP | IPv4
         172.16.42.4->172.16.42.5 ICMP | ICMP EchoRequest 0 0 (0 data
+        bytes) out eth0 and Ethernet
+        30:00:00:00:00:04->30:00:00:00:00:05 IP | IPv4
+        172.16.42.4->172.16.42.5 ICMP | ICMP EchoRequest 0 0 (0 data
         bytes) out eth3 and Ethernet
         30:00:00:00:00:04->30:00:00:00:00:05 IP | IPv4
         172.16.42.4->172.16.42.5 ICMP | ICMP EchoRequest 0 0 (0 data
-        bytes) out eth2 and Ethernet
-        30:00:00:00:00:04->30:00:00:00:00:05 IP | IPv4
-        172.16.42.4->172.16.42.5 ICMP | ICMP EchoRequest 0 0 (0 data
-        bytes) out eth0
+        bytes) out eth2
 11  An Ethernet frame from 30:00:00:00:00:05 to
     30:00:00:00:00:06 should arrive on eth0
         Expected event: recv_packet Ethernet
@@ -507,10 +496,10 @@ Pending (couldn't test because of prior failure):
         bytes) out eth1 and Ethernet
         30:00:00:00:00:07->30:00:00:00:00:06 IP | IPv4
         172.16.42.7->172.16.42.6 ICMP | ICMP EchoRequest 0 0 (0 data
-        bytes) out eth3 and Ethernet
+        bytes) out eth2 and Ethernet
         30:00:00:00:00:07->30:00:00:00:00:06 IP | IPv4
         172.16.42.7->172.16.42.6 ICMP | ICMP EchoRequest 0 0 (0 data
-        bytes) out eth2
+        bytes) out eth3
 5   An Ethernet frame from 30:00:00:00:00:02 to
     30:00:00:00:00:07 should arrive on eth2
         Expected event: recv_packet Ethernet
@@ -948,6 +937,8 @@ If you don't want pdb, use the --nopdb flag to avoid this fate.
 
 > /home/cs640user/switchyard-master/switchyard/switchy_test.py(95)send_packet()
 -> SwitchyTestEvent.EVENT_OUTPUT, device=devname, packet=pkt)
-> /home/cs640user/switchyard-master/examples/exercises/learning_switch/myswitch_traffic.py(77)switchy_main()
+> /home/cs640user/switchyard-master/examples/exercises/learning_switch/myswitch_traffic.py(73)switchy_main()
 -> net.send_packet(intf.name, packet)
+(Pdb) > /home/cs640user/switchyard-master/switchyard/switchy_test.py(158)run_tests()
+-> usercode_entry_point(net)
 (Pdb) [39m[49m[0m

@@ -53,10 +53,6 @@ def switchy_main(net):
             
             switchTable.insert(0,switchTableElement(packet[0].src,dev))
 
-        for item in switchTable:
-            item.display()
-        print ("itemCnt=%d" % itemCnt)
-            
         log_debug ("In {} received packet {} on {}".format(net.name, packet, dev))
         if packet[0].dst in mymacs:
             log_debug ("Packet intended for me")
@@ -75,4 +71,10 @@ def switchy_main(net):
                     if dev != intf.name:
                         log_debug ("Flooding packet {} to {}".format(packet, intf.name))
                         net.send_packet(intf.name, packet)
+        
+
+        for item in switchTable:
+            item.display()
+        print ("itemCnt=%d" % itemCnt)
+            
     net.shutdown()
