@@ -40,7 +40,7 @@ def switchy_main(net):
         except Shutdown:
             return
 
-        update=0
+        update = 0
         for item in switchTable:
             if item.mac == packet[0].src:
                 item.dev = dev
