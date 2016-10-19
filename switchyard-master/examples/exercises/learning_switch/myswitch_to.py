@@ -2,10 +2,6 @@
 
 '''
 Ethernet learning switch in Python: HW3.
-
-Note that this file currently has the code to implement a "hub"
-in it, not a learning switch.  (I.e., it's currently a switch
-that doesn't learn.)
 '''
 from switchyard.lib.address import *
 from switchyard.lib.packet import *
@@ -28,11 +24,6 @@ def switchy_main(net):
     
 
     while True:
-        curTime = time.time();
-        print ("%d\n" % (curTime))
-        for item in switchTable:
-            if curTime - item.time >= 10:
-                switchTable.remove(item);
         try:
             dev,packet = net.recv_packet()
         except NoPackets:
@@ -40,6 +31,11 @@ def switchy_main(net):
         except Shutdown:
             return
 
+        curTime = time.time();
+        print ("%f\n" % (curTime))
+        for item in switchTable:
+            if curTime - item.time >= 10.0:
+                switchTable.remove(item);
         update = 0
         for item in switchTable:
             if item.mac == packet[0].src:

@@ -3,9 +3,6 @@
 '''
 Ethernet learning switch in Python: HW3.
 
-Note that this file currently has the code to implement a "hub"
-in it, not a learning switch.  (I.e., it's currently a switch
-that doesn't learn.)
 '''
 from switchyard.lib.address import *
 from switchyard.lib.packet import *
@@ -72,8 +69,8 @@ def switchy_main(net):
                         net.send_packet(intf.name, packet)
         
 
-        for item in switchTable:
-            item.display()
-        print ("itemCnt=%d" % itemCnt)
+    #    for item in switchTable:
+    #        item.display()
+    #    print ("itemCnt=%d" % itemCnt)
             
     net.shutdown()
