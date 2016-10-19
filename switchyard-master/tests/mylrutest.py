@@ -69,42 +69,42 @@ def hub_tests():
     s.expect(PacketInputTimeoutEvent(1.0), "The hub should not do anything in response to a frame arriving with a destination address referring to the hub itself.")
     
     # test case 7
-    reqpkt = mk_pkt("30:00:00:00:00:01", "30:00:00:00:00:04", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:01", "30:00:00:00:00:04", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth1", testpkt, display=Ethernet), "from 30:00:00:00:00:01 to 30:00:00:00:00:04 arrives on eth1")
     s.expect(PacketOutputEvent("eth0", testpkt, "eth2", testpkt, "eth3", testpkt , display=Ethernet), "flood")
 
     # test case 8
-    reqpkt = mk_pkt("30:00:00:00:00:02", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:02", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth3", testpkt, display=Ethernet), "from 30:00:00:00:00:02 to 30:00:00:00:00:01 arrives on eth3")
     s.expect(PacketOutputEvent("eth1", testpkt , display=Ethernet), "eth1")
 
     # test case 9
-    reqpkt = mk_pkt("30:00:00:00:00:03", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:03", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth2", testpkt, display=Ethernet), "from 30:00:00:00:00:03 to 30:00:00:00:00:01 arrives on eth2")
     s.expect(PacketOutputEvent("eth1", testpkt , display=Ethernet), "eth1")
 
     # test case 10
-    reqpkt = mk_pkt("30:00:00:00:00:04", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:04", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth2", testpkt, display=Ethernet), "from 30:00:00:00:00:04 to 30:00:00:00:00:01 arrives on eth2")
     s.expect(PacketOutputEvent("eth1", testpkt , display=Ethernet), "eth1")
 
     # test case 11
-    reqpkt = mk_pkt("30:00:00:00:00:05", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:05", "30:00:00:00:00:01", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth3", testpkt, display=Ethernet), "from 30:00:00:00:00:05 to 30:00:00:00:00:01 arrives on eth3")
     s.expect(PacketOutputEvent("eth1", testpkt , display=Ethernet), "eth1")
 
     # test case 12
-    reqpkt = mk_pkt("30:00:00:00:00:06", "30:00:00:00:00:02", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:06", "30:00:00:00:00:02", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth0", testpkt, display=Ethernet), "from 30:00:00:00:00:06 to 30:00:00:00:00:02 arrives on eth1")
     s.expect(PacketOutputEvent("eth1", testpkt, "eth2", testpkt, "eth3", testpkt , display=Ethernet), "flood due to LRU kicked h2")
 
     # test case 13
-    reqpkt = mk_pkt("30:00:00:00:00:05", "30:00:00:00:00:03", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:05", "30:00:00:00:00:03", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth0", testpkt, display=Ethernet), "from 30:00:00:00:00:05 to 30:00:00:00:00:03 arrives on eth0")
     s.expect(PacketOutputEvent("eth2", testpkt, display=Ethernet), "eth2")
 
     # test case 14
-    reqpkt = mk_pkt("30:00:00:00:00:01", "30:00:00:00:00:04", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:01", "30:00:00:00:00:04", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth0", testpkt, display=Ethernet), "from 30:00:00:00:00:01 to 30:00:00:00:00:04 arrives on eth0")
     s.expect(PacketOutputEvent("eth1", testpkt, "eth2", testpkt, "eth3", testpkt , display=Ethernet), "flood due to LRU kicked h4")
     return s
