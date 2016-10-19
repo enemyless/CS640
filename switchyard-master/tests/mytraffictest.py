@@ -91,7 +91,7 @@ def hub_tests():
     # test case 11
     testpkt = mk_pkt("30:00:00:00:00:05", "30:00:00:00:00:07", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth3", testpkt, display=Ethernet), "from 30:00:00:00:00:05 to 30:00:00:00:00:07 arrives on eth3")
-    s.expect(PacketOutputEvent("eth1", testpkt, "eth2", testpkt, "eth3", testpkt , display=Ethernet), "flood due to traffic kicked h7")
+    s.expect(PacketOutputEvent("eth0", testpkt, "eth1", testpkt, "eth2", testpkt , display=Ethernet), "flood due to traffic kicked h7")
     return s
 
 scenario = hub_tests()
