@@ -52,7 +52,7 @@ def hub_tests():
 
     # test case 4: a frame with dest address of one of the interfaces should
     # result in nothing happening
-    reqpkt = mk_pkt("30:00:00:00:00:03", "10:00:00:00:00:03", '192.168.1.100','172.16.42.2')
+    reqpkt = mk_pkt("30:00:00:00:00:13", "10:00:00:00:00:03", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth2", reqpkt, display=Ethernet), "eth2 with destination address the same as eth2's MAC address")
     s.expect(PacketInputTimeoutEvent(1.0), "drop the packet.")
     
