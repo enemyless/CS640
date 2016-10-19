@@ -40,7 +40,6 @@ def switchy_main(net):
         for item in switchTable:
             if item.mac == packet[0].src:
                 item.dev = dev
-                item.traffic += 1
                 update=1
                 break
 
