@@ -104,7 +104,7 @@ def hub_tests():
     s.expect(PacketOutputEvent("eth2", testpkt, display=Ethernet), "eth2")
 
     # test case 14
-    testpkt = mk_pkt("30:00:00:00:00:01", "30:00:00:00:00:04", '192.168.1.100','172.16.42.2')
+    testpkt = mk_pkt("30:00:00:00:00:07", "30:00:00:00:00:04", '192.168.1.100','172.16.42.2')
     s.expect(PacketInputEvent("eth0", testpkt, display=Ethernet), "from 30:00:00:00:00:01 to 30:00:00:00:00:04 arrives on eth0")
     s.expect(PacketOutputEvent("eth1", testpkt, "eth2", testpkt, "eth3", testpkt , display=Ethernet), "flood due to LRU kicked h4")
     return s
