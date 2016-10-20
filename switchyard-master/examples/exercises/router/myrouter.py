@@ -11,7 +11,7 @@ from switchyard.lib.packet import *
 from switchyard.lib.address import *
 from switchyard.lib.common import *
 
-class mapingTableElement(object):
+class mappingTableElement(object):
     def __init__(self,ip=None,mac=None,TTL=64):
         self.ip = ip
         self.mac = mac
@@ -33,7 +33,10 @@ class Router(object):
         packets until the end of time.
         '''
         my_interfaces = self.net.interfaces()
-
+        for intf in my_interfaces:
+            self.mappingTable.insert(0,mappingTableElement(intf.ethaddr,intf.ipaddr))
+            print (intf.ethaddr, intf.ipaddr)
+        
         while True:
             gotpkt = True
             try:
@@ -49,24 +52,31 @@ class Router(object):
                 log_debug("Got a packet: {}".format(str(pkt)))
 
                 # ARP packet
-                arp_header = pkt.header(Arp)
-                    if arp_header:
+                arp_header = pkt.get_header(Arp)
+                print (arp_header.senderprotoaddr,arp_header.senderhwaddr,arp_header.targethwaddr,arp_header.targetprotoaddr)                
+                # ARP request
+                if arp_header.targethwaddr == "ff:ff:ff:ff:ff:ff":
+                    print("test")
+                    update=0
+                    for item in self.mappingTable:
+                        print("tes1t")
+                        if item.ip == arp_header.senderprotoaddr:
+                            item.mac = arp_header.senderhwaddr
+                            print ("update")
+                            update = 1
+                            #break
+                    if update == 0:
+                        self.mappingTable.insert(0,mappingTableElement(arp_header.senderhwaddr,arp_header.senderprotoaddr))
+                    for intf in my_interfaces:
+                        print (intf.ethaddr,intf.ipaddr)
+                        if intf.ipaddr == arp_header.targetprotoaddr:
+                            print (intf.ipaddr,intf.ethaddr)
+                            arp_reply = create_ip_arp_reply(arp_header.senderhwaddr,intf.ethaddr,arp_header.senderprotoaddr,arp_header.targetprotoaddr)
+                            self.net.send_packet(dev,arp_reply)
+                        break
 
-                    # ARP request
-                    if arp_header.targethwaddr == "":
-                        for item in mappingTable:
-                            if item.ip == arp_header.senderprotoaddr:
-                                item.mac = arp_header.senderhwaddr
-                                break
-
-                        for item in my_interfaces:
-                            if item.ipaddr == arp_header.targetprotoaddr:
-                                arp_reply == create_ip_art_reply(arp_header.senderhwaddr,arp_header.targethwaddr,arp_header.senderprotoaddr,arp_header.targetprotoaddr)
-                                self.net.send_packet(dev,arp_reply)
-                            break
-
-                        
-                        
+                    
+                    
 def switchy_main(net):
     '''
     Main entry point for router.  Just create Router
