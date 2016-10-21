@@ -34,8 +34,8 @@ class Router(object):
         '''
         my_interfaces = self.net.interfaces()
         for intf in my_interfaces:
-            self.mappingTable.insert(0,mappingTableElement(intf.ethaddr,intf.ipaddr))
-            print (intf.ethaddr, intf.ipaddr)
+            self.mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr))
+            self.mappingTable[0].display()
         
         while True:
             gotpkt = True
@@ -51,29 +51,30 @@ class Router(object):
             if gotpkt:
                 log_debug("Got a packet: {}".format(str(pkt)))
 
+                print ("got a packet")
+                print (pkt)
                 # ARP packet
                 arp_header = pkt.get_header(Arp)
-                print (arp_header.senderprotoaddr,arp_header.senderhwaddr,arp_header.targethwaddr,arp_header.targetprotoaddr)                
+                print (arp_header)                
                 # ARP request
-                if arp_header.targethwaddr == "ff:ff:ff:ff:ff:ff":
-                    print("test")
-                    update=0
-                    for item in self.mappingTable:
-                        print("tes1t")
-                        if item.ip == arp_header.senderprotoaddr:
-                            item.mac = arp_header.senderhwaddr
-                            print ("update")
-                            update = 1
-                            #break
-                    if update == 0:
-                        self.mappingTable.insert(0,mappingTableElement(arp_header.senderhwaddr,arp_header.senderprotoaddr))
-                    for intf in my_interfaces:
-                        print (intf.ethaddr,intf.ipaddr)
-                        if intf.ipaddr == arp_header.targetprotoaddr:
-                            print (intf.ipaddr,intf.ethaddr)
-                            arp_reply = create_ip_arp_reply(arp_header.senderhwaddr,intf.ethaddr,arp_header.senderprotoaddr,arp_header.targetprotoaddr)
-                            self.net.send_packet(dev,arp_reply)
-                        break
+                if arp_header is not None:
+                    if arp_header.targethwaddr == "ff:ff:ff:ff:ff:ff":
+                        update=0
+                        for item in self.mappingTable:
+                            item.display()
+                            if item.ip == arp_header.senderprotoaddr:
+                                item.mac = arp_header.senderhwaddr
+                            #    print ("update")
+                                update = 1
+                                break
+                        if update == 0:
+                            self.mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr))
+                        for intf in my_interfaces:
+                            if intf.ipaddr == arp_header.targetprotoaddr:
+                                arp_reply = create_ip_arp_reply(intf.ethaddr,arp_header.senderhwaddr,arp_header.targetprotoaddr,arp_header.senderprotoaddr)
+                                print (arp_reply)
+                                self.net.send_packet(dev,arp_reply)
+                                break
 
                     
                     
