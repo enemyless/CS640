@@ -175,7 +175,9 @@ class Router(object):
                                 log_debug("Got a ICMP Header {}".format(str(icmp_header)))
                                 if icmp_header.icmptype != ICMPType.EchoRequest:
                                     ip = IPv4()
-                                    ip.src = dev.ipaddr
+                                    for intf in my_interfaces:
+                                        if intf.name == dev:
+                                            ip.src = intf.ipaddr
                                     ip.dst = ipv4_header.src
                                     ip.ttl = 64
                                     ip.protocol = IPProtocol.ICMP
@@ -200,9 +202,9 @@ class Router(object):
                                     eth.dst = "ff:ff:ff:ff:ff:ff"
                                     icmp = ICMP()
                                     icmp.icmptype = ICMPType.EchoReply
-                                    icmp.icmpdata = icmp_header.icmpdata
-                                    #icmp.identifier = icmp_header.identifier
-                                    #icmp.sequence = icmp_header.sequence
+                                    icmp.icmpdata.data = icmp_header.icmpdata.data
+                                    icmp.icmpdata.identifier = icmp_header.icmpdata.identifier
+                                    icmp.icmpdata.sequence = icmp_header.icmpdata.sequence
                                     pktSend = eth + ip + icmp
                             #dstRouter = 1
                             break
@@ -231,7 +233,9 @@ class Router(object):
                         if forwardResult is None:
                             ip = IPv4()
                             ip.ttl = 64
-                            ip.src = dev.ipaddr
+                            for intf in my_interfaces:
+                                if intf.name == dev:
+                                    ip.src = intf.ipaddr
                             ip.dst = ipv4_header.src
                             ip.protocol = IPProtocol.ICMP
                             icmp = ICMP()
@@ -246,18 +250,21 @@ class Router(object):
                         elif pktSend[pktSend.get_header_index(IPv4)].ttl == 0:
                             ip = IPv4()
                             ip.ttl = 64
-                            ip.src = dev.ipaddr
+                            for intf in my_interfaces:
+                                if intf.name == dev:
+                                    ip.src = intf.ipaddr
                             ip.dst = ipv4_header.src
                             ip.protocol = IPProtocol.ICMP
                             icmp = ICMP()
-                            icmp.icmptype = ICMPType.ICMPTimeExceeded
-                            icmp.icmpcode = ICMPCodetimeExceeded.TTLExpired
+                            icmp.icmptype = ICMPType.TimeExceeded
+                            icmp.icmpcode = ICMPCodeyTimeExceeded.TTLExpired
                             icmpErrPkt = ip + icmp
                             log_debug("send packet on {}".format(str(dev)))
                             self.net.send_packet(dev,icmpErrPkt)
                             icmpErr = 1
 
                         else: #found forwarding result
+                            log_debug("forward result:{}".format(str(forwardResult)))
                             forwardResult.display()
                             for intf in my_interfaces:
                                 if intf.name == forwardResult.dev:
@@ -265,18 +272,18 @@ class Router(object):
                                     break
                             log_debug("pkt:{}".format(str(pktSend)))
 
-                            log_debug("forward result:{}".format(str(forwardResult)))
                             
                             # mapping table lookup
                             for m in mappingTable:
                                 m.display()
+                                forwardResult.display()
                                 #forward or network connected directly to the interface
                                 if forwardResult.nxtHopIP is None:
                                     if m.ip ==  pktSend[pktSend.get_header_index(IPv4)].dst:
                                         mappingResult = m
                                         break
                                 else:
-                                    if m.ip == forwardResult.nxtHopIP:
+                                    if str(m.ip) == forwardResult.nxtHopIP:
                                         mappingResult = m
                                         break
                         
@@ -285,10 +292,10 @@ class Router(object):
                             if mappingResult is not None:
                                 mappingResult.display()
                                 # send
-                                for intf in my_interfaces:
-                                    pktSend[pktSend.get_header_index(Ethernet)].dst = mappingResult.mac
-                                    log_debug("send packet on {}".format(str(m.dev)))
-                                    self.net.send_packet(m.dev,pktSend)
+                                #for intf in my_interfaces:
+                                pktSend[pktSend.get_header_index(Ethernet)].dst = mappingResult.mac
+                                log_debug("send packet on {}".format(str(m.dev)))
+                                self.net.send_packet(m.dev,pktSend)
 
                             else: # no mapping reselt, send ARP request
                                 for intf in my_interfaces:
@@ -338,7 +345,9 @@ class Router(object):
                     if w.retry == 4 : # drop and send ICMP err
                         for p in w.ethPktList:
                             ip = IPv4()
-                            ip.src = w.srcDevList[w.ethPktList.index(p)].ipaddr
+                            for intf in my_interfaces:
+                                if intf.name == w.srcDevList[w.ethPktList.index(p)]:
+                                    ip.src = intf.ipaddr
                             ip.dst = p[p.get_header_index(IPv4)].src
                             ip.ttl = 64
                             ip.protocol = IPProtocol.ICMP
