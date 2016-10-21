@@ -54,47 +54,174 @@ class Router(object):
     def __init__(self, net):
         self.net = net
         # other initialization stuff here
+        self.mappingTable = []
+        self.forwardingTableRouter = []
+        self.forwardingTable = []
+        self.waitQueue = []
+        self.my_interface = []
 
-
-    def router_main(self):    
-        '''
-        Main method for router; we stay in a loop in this method, receiving
-        packets until the end of time.
-        '''
-        mappingTable = []
-        forwardingTableRouter = []
-        forwardingTable = []
-        waitQueue = []
-
+    def setup(self):
         file = os.path.join(os.path.dirname(__file__),"forwarding_table.txt")
         fp = open(file,'r+')
 
-        my_interfaces = self.net.interfaces()
-        for intf in my_interfaces:
+        self.my_interfaces = self.net.interfaces()
+        for intf in self.my_interfaces:
             print(intf)
-            mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
+            self.mappingTable.append(mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
             intf_network = str(IPv4Network(int(intf.ipaddr)&int(intf.netmask)))
             intf_net = intf_network.split('/')
             intf_prefix=IPv4Network(str(intf_net[0])+'/'+str(intf.netmask))
             intf_prefixlen = intf_prefix.prefixlen
             
-            forwardingTable.insert(0,forwardingTableElement(intf_net[0],intf.netmask,None,intf.name,intf_prefixlen))
-        #    mappingTable[0].display()
+            self.forwardingTable.append(forwardingTableElement(intf_net[0],intf.netmask,None,intf.name,intf_prefixlen))
+        #    self.mappingTable[0].display()
 
         for line in fp:
             line = line.rstrip()
             item = line.split(" ")
             netaddr = IPv4Network(item[0]+'/'+item[1])
-            forwardingTable.insert(0,forwardingTableElement(item[0],item[1],item[2],item[3],netaddr.prefixlen))
-            #forwardingTable[0].display()
+            self.forwardingTable.append(forwardingTableElement(item[0],item[1],item[2],item[3],netaddr.prefixlen))
+            #self.forwardingTable[0].display()
 
-        forwardingTable.sort(key=operator.attrgetter('prefixlen'),reverse=True)
+        self.forwardingTable.sort(key=operator.attrgetter('prefixlen'),reverse=True)
 
-        for f in forwardingTable:
+        for f in self.forwardingTable:
             f.display()
-        for f in forwardingTableRouter:
+        for f in self.forwardingTableRouter:
             f.display()
 
+    def forwardingTableMatch(self,pktSend):
+        # longest path comparison
+        for f in self.forwardingTable:
+            prefixnet = IPv4Network(str(f.prefix) + '/' + str(f.prefixlen))
+            match = pktSend[pktSend.get_header_index(IPv4)].dst in prefixnet
+            if match:
+                return f
+        return None
+
+    def mappingTableMatch(self,pktSend,forwardResult):
+        # mapping table lookup
+        for m in self.mappingTable:
+            m.display()
+            forwardResult.display()
+            #forward or network connected directly to the interface
+            if forwardResult.nxtHopIP is None:
+                if m.ip ==  pktSend[pktSend.get_header_index(IPv4)].dst:
+                    return m
+            else:
+                if str(m.ip) == forwardResult.nxtHopIP:
+                    return m
+        return None
+
+    def icmpErrPkt(self,icmpRequestPkt,icmptype,icmpcode):
+        ip = IPv4()
+        #for intf in self.my_interfaces:
+        #    if intf.name == dev:
+        #        ip.src = intf.ipaddr
+        ip.src = "0.0.0.0"
+        
+        del icmpRequestPkt[icmpRequestPkt.get_header_index(Ethernet)]
+
+        ipv4_header = icmpRequestPkt.get_header(IPv4)
+        ip.dst = ipv4_header.src
+        ip.ttl = 64
+        ip.protocol = IPProtocol.ICMP
+        icmp = ICMP()
+        icmp.icmptype = icmptype
+        icmp.icmpcode = icmpcode 
+        icmp.icmpdata.data = icmpRequestPkt.to_bytes()[:28]
+        eth = Ethernet()
+        eth.src = "ff:ff:ff:ff:ff:ff"
+        eth.dst = "ff:ff:ff:ff:ff:ff"
+        return  eth + ip + icmp
+
+
+    def icmpRlyPkt(self,icmpRequestPkt):
+        eth = Ethernet()
+        eth.ethertype = EtherType.IPv4
+        eth.src = "ff:ff:ff:ff:ff:ff"
+        eth.dst = "ff:ff:ff:ff:ff:ff"
+        
+        ip = IPv4()
+        ip.protocol = IPProtocol.ICMP
+        ipv4_header = icmpRequestPkt.get_header(IPv4)
+        ip.src = ipv4_header.dst
+        ip.dst = ipv4_header.src
+        ip.ttl = 64
+      
+        icmp = ICMP()
+        icmp_header = icmpRequestPkt.get_header(ICMP)
+        icmp.icmptype = ICMPType.EchoReply
+        icmp.icmpdata.data = icmp_header.icmpdata.data
+        icmp.icmpdata.identifier = icmp_header.icmpdata.identifier
+        icmp.icmpdata.sequence = icmp_header.icmpdata.sequence
+        
+        return  eth + ip + icmp
+
+    def findIntf(self,dev):
+        for intf in self.my_interfaces:
+            if intf.name == dev:
+                return intf
+        return None
+    
+    def mapAndSend(self,forwardResult,pktSend,dev):
+        for intf in self.my_interfaces:
+            if intf.name == forwardResult.dev:
+                pktSend[pktSend.get_header_index(Ethernet)].src = intf.ethaddr
+                if str(pktSend[pktSend.get_header_index(IPv4)].src) == "0.0.0.0": # specific for ICMP err pkt
+                    pktSend[pktSend.get_header_index(IPv4)].src = intf.ipaddr
+                break
+        log_debug("pktSend:{}".format(str(pktSend)))
+
+        mappingResult = self.mappingTableMatch(pktSend,forwardResult) 
+        log_debug("mapping result:{}".format(str(mappingResult)))
+
+        if mappingResult is not None:
+            mappingResult.display()
+            # send
+            #for intf in self.my_interfaces:
+            pktSend[pktSend.get_header_index(Ethernet)].dst = mappingResult.mac
+            log_debug("send packet on {}".format(str(mappingResult.dev)))
+            self.net.send_packet(mappingResult.dev,pktSend)
+
+        else: # no mapping reselt, send ARP request
+            for intf in self.my_interfaces:
+                if intf.name == forwardResult.dev:
+                    if forwardResult.nxtHopIP is None: # network connected to router interface
+                        arp_request = create_ip_arp_request( \
+                                pktSend[pktSend.get_header_index(Ethernet)].src, \
+                                intf.ipaddr, \
+                                pktSend[pktSend.get_header_index(IPv4)].dst)
+                    else:
+                        arp_request = create_ip_arp_request( \
+                                pktSend[pktSend.get_header_index(Ethernet)].src, \
+                                intf.ipaddr, \
+                                forwardResult.nxtHopIP)
+                    
+                    log_debug("{}".format(str(arp_request)))
+
+                    # Share the same arp request for the same dst IP
+                    insertFlg = 1
+                    for w in self.waitQueue:
+                        w_arp_header = w.arpPkt.get_header(Arp)
+                        arp_request_header = arp_request.get_header(Arp)
+                        if w_arp_header.targetprotoaddr == arp_request_header.targetprotoaddr:
+                            w.ethPktList.append(pktSend)
+                            insertFlg = 0
+                            break
+                    if insertFlg == 1:
+                        self.waitQueue.append(waitQueueElement(pktSend,arp_request,forwardResult.dev,time.time(),0,dev))
+                        log_debug("send packet on {}".format(str(forwardResult.dev)))
+                        self.net.send_packet(forwardResult.dev,arp_request)
+                    break
+
+    
+    def router_main(self):
+        '''
+        Main method for router; we stay in a loop in this method, receiving
+        packets until the end of time.
+        '''
+        self.setup()
         
         while True:
             gotpkt = True
@@ -120,7 +247,7 @@ class Router(object):
                     if arp_header.operation == ArpOperation.Request:
                         log_debug("got arp request")                
                         update=0
-                        for item in mappingTable:
+                        for item in self.mappingTable:
                             item.display()
                             if item.ip == arp_header.senderprotoaddr:
                                 item.mac = arp_header.senderhwaddr
@@ -128,8 +255,9 @@ class Router(object):
                                 update = 1
                                 break
                         if update == 0:
-                            mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr,dev))
-                        for intf in my_interfaces:
+                            self.mappingTable.append(mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr,dev))
+
+                        for intf in self.my_interfaces:
                             if intf.ipaddr == arp_header.targetprotoaddr:
                                 arp_reply = create_ip_arp_reply(intf.ethaddr,arp_header.senderhwaddr,arp_header.targetprotoaddr,arp_header.senderprotoaddr)
                                 #print (arp_reply)
@@ -139,18 +267,21 @@ class Router(object):
                     # ARP reply
                     elif arp_header.operation == ArpOperation.Reply:
                         log_debug("got arp reply")                
-                        mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr,dev))
-                        for w in waitQueue:
+                        self.mappingTable.append(mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr,dev))
+                        for w in self.waitQueue:
                             w.display()
                             w_arp_header = w.arpPkt.get_header(Arp)
                             if w_arp_header.targetprotoaddr == arp_header.senderprotoaddr:
                                 print("match")
                                 for p in w.ethPktList:
                                     p[p.get_header_index(Ethernet)].dst = arp_header.senderhwaddr
+                                    print (p[p.get_header_index(IPv4)].src)
+                                    if str(p[p.get_header_index(IPv4)].src) == "0.0.0.0": # specific for ICMP err
+                                        p[p.get_header_index(IPv4)].src = self.findIntf(dev).ipaddr
                                     w.display()
                                     log_debug("send packet on {}".format(str(w.dev)))
                                     self.net.send_packet(w.dev,p) 
-                                del waitQueue[waitQueue.index(w)]
+                                del self.waitQueue[self.waitQueue.index(w)]
                                 break
                 
                 # ipv4 packet (maybe ICMP or other types)
@@ -161,59 +292,32 @@ class Router(object):
                     pktSend = None
                     sendPort = None
                     log_debug("{}".format(str(ipv4_header)))
-                    # for the router itself
-                    dstRouter = 0;
+                    
                     forwardResult = None
                     mappingResult = None
 
                     icmpErr = 0
                     
-                    # if ICMP request for router interface then send back ICMP reply, else drop
-                    for intf in my_interfaces:
+                    # if ICMP request for router interface then send back ICMP reply, else send ICMP ERR 
+                    for intf in self.my_interfaces:
                         if intf.ipaddr == ipv4_header.dst:
                             if icmp_header is not None:
                                 log_debug("Got a ICMP Header {}".format(str(icmp_header)))
                                 if icmp_header.icmptype != ICMPType.EchoRequest:
-                                    ip = IPv4()
-                                    for intf in my_interfaces:
-                                        if intf.name == dev:
-                                            ip.src = intf.ipaddr
-                                    ip.dst = ipv4_header.src
-                                    ip.ttl = 64
-                                    ip.protocol = IPProtocol.ICMP
-                                    icmp = ICMP()
-                                    icmp.icmptype = ICMPType.ICMPDestinationUnreachable
-                                    icmp.icmpcode = DestinationUnreachable.PortUnreachable
-                                    icmpErrPkt = ip + icmp
-                                    log_debug("send packet on {}".format(str(dev)))
-                                    self.net.send_packet(dev,icmpErrPkt)
-
+                                    pktSend = self.icmpErrPkt(pkt,ICMPType.DestinationUnreachable,ICMPCodeDestinationUnreachable.PortUnreachable)
                                     icmpErr = 1
-
                                 else:
-                                    ip = IPv4()
-                                    ip.protocol = IPProtocol.ICMP
-                                    ip.src = ipv4_header.dst
-                                    ip.dst = ipv4_header.src
-                                    ip.ttl = 64
-                                    eth = Ethernet()
-                                    eth.ethertype = EtherType.IPv4
-                                    eth.src = "ff:ff:ff:ff:ff:ff"
-                                    eth.dst = "ff:ff:ff:ff:ff:ff"
-                                    icmp = ICMP()
-                                    icmp.icmptype = ICMPType.EchoReply
-                                    icmp.icmpdata.data = icmp_header.icmpdata.data
-                                    icmp.icmpdata.identifier = icmp_header.icmpdata.identifier
-                                    icmp.icmpdata.sequence = icmp_header.icmpdata.sequence
-                                    pktSend = eth + ip + icmp
-                            #dstRouter = 1
+                                    pktSend = self.icmpRlyPkt(pkt)
+                            else:
+                                pktSend = self.icmpErrPkt(pkt,ICMPType.DestinationUnreachable,ICMPCodeDestinationUnreachable.PortUnreachable)
+                                icmpErr = 1
+
                             break
 
-                    #if dstRouter != 1:
-                    if icmpErr == 0 :# not ICMP for router interface, should be packet to redirect
+                    if icmpErr == 0 :# no ICMP err
+                        log_debug("icmpErr:{}".format(str(icmpErr)))
                         if pktSend is None:# not ICMP for router interface, should be packet to redirect
                             # Construct header
-                            #pktSend = copy.copy(pkt)
                             pktSend = pkt
                             print ("aaa")
                             print (pktSend[pktSend.get_header_index(IPv4)].ttl)
@@ -222,142 +326,53 @@ class Router(object):
                             pktSend[pktSend.get_header_index(Ethernet)].src = "ff:ff:ff:ff:ff:ff"
                             pktSend[pktSend.get_header_index(Ethernet)].dst = "ff:ff:ff:ff:ff:ff"
                         
-                        # longest path comparison
-                        for f in forwardingTable:
-                            prefixnet = IPv4Network(str(f.prefix) + '/' + str(f.prefixlen))
-                            match = pktSend[pktSend.get_header_index(IPv4)].dst in prefixnet
-                            if match:
-                                forwardResult = f
-                                break
+                        log_debug("pktSend:{}".format(str(pktSend)))
+                        print (pktSend[pktSend.get_header_index(IPv4)].dst)
+                        forwardResult = self.forwardingTableMatch(pktSend)
                         
-                        if forwardResult is None:
-                            ip = IPv4()
-                            ip.ttl = 64
-                            for intf in my_interfaces:
-                                if intf.name == dev:
-                                    ip.src = intf.ipaddr
-                            ip.dst = ipv4_header.src
-                            ip.protocol = IPProtocol.ICMP
-                            icmp = ICMP()
-                            icmp.icmptype = ICMPType.ICMPDestinationUnreachable
-                            icmp.icmpcode = DestinationUnreachable.NetworkUnreachable
-                            icmpErrPkt = ip + icmp
-                            log_debug("send packet on {}".format(str(dev)))
-                            self.net.send_packet(dev,icmpErrPkt)
-                            
+                        if forwardResult is None: # ICMP err if no route ro redirect
+                            pktSend = self.icmpErrPkt(pkt,ICMPType.DestinationUnreachable,ICMPCodeDestinationUnreachable.NetworkUnreachable)
                             icmpErr = 1
+                            log_debug("no route to redirct :pktSend:{}".format(str(pktSend)))
 
-                        elif pktSend[pktSend.get_header_index(IPv4)].ttl == 0:
-                            ip = IPv4()
-                            ip.ttl = 64
-                            for intf in my_interfaces:
-                                if intf.name == dev:
-                                    ip.src = intf.ipaddr
-                            ip.dst = ipv4_header.src
-                            ip.protocol = IPProtocol.ICMP
-                            icmp = ICMP()
-                            icmp.icmptype = ICMPType.TimeExceeded
-                            icmp.icmpcode = ICMPCodeyTimeExceeded.TTLExpired
-                            icmpErrPkt = ip + icmp
-                            log_debug("send packet on {}".format(str(dev)))
-                            self.net.send_packet(dev,icmpErrPkt)
+                        elif pktSend[pktSend.get_header_index(IPv4)].ttl == 0: # ICMP err if TTL down to 0
+                            pktSend = self.icmpErrPkt(pkt,ICMPType.TimeExceeded,ICMPCodeTimeExceeded.TTLExpired)
                             icmpErr = 1
-
-                        else: #found forwarding result
-                            log_debug("forward result:{}".format(str(forwardResult)))
-                            forwardResult.display()
-                            for intf in my_interfaces:
-                                if intf.name == forwardResult.dev:
-                                    pktSend[pktSend.get_header_index(Ethernet)].src = intf.ethaddr
-                                    break
-                            log_debug("pkt:{}".format(str(pktSend)))
-
-                            
-                            # mapping table lookup
-                            for m in mappingTable:
-                                m.display()
-                                forwardResult.display()
-                                #forward or network connected directly to the interface
-                                if forwardResult.nxtHopIP is None:
-                                    if m.ip ==  pktSend[pktSend.get_header_index(IPv4)].dst:
-                                        mappingResult = m
-                                        break
-                                else:
-                                    if str(m.ip) == forwardResult.nxtHopIP:
-                                        mappingResult = m
-                                        break
+                            log_debug("TTL expire : pktSend:{}".format(str(pktSend)))
                         
-                            log_debug("mapping result:{}".format(str(mappingResult)))
+                        log_debug("pktSend:{}".format(str(pktSend)))
+                        log_debug("icmpErr:{}".format(str(icmpErr)))
 
-                            if mappingResult is not None:
-                                mappingResult.display()
-                                # send
-                                #for intf in my_interfaces:
-                                pktSend[pktSend.get_header_index(Ethernet)].dst = mappingResult.mac
-                                log_debug("send packet on {}".format(str(m.dev)))
-                                self.net.send_packet(m.dev,pktSend)
+                    if icmpErr == 1:
+                        # match forwarding table again for the ICMP err pkt
+                        log_debug("pktSend:{}".format(str(pktSend)))
+                        forwardResult = self.forwardingTableMatch(pktSend)
 
-                            else: # no mapping reselt, send ARP request
-                                for intf in my_interfaces:
-                                    if intf.name == forwardResult.dev:
-                                        if forwardResult.nxtHopIP is None: # network connected to router interface
-                                            arp_request = create_ip_arp_request( \
-                                                    pktSend[pktSend.get_header_index(Ethernet)].src, \
-                                                    intf.ipaddr, \
-                                                    pktSend[pktSend.get_header_index(IPv4)].dst)
-                                        else:
-                                            arp_request = create_ip_arp_request( \
-                                                    pktSend[pktSend.get_header_index(Ethernet)].src, \
-                                                    intf.ipaddr, \
-                                                    forwardResult.nxtHopIP)
-                                        
-                                        log_debug("{}".format(str(arp_request)))
+                    if forwardResult is not None: #found forwarding result
+                        log_debug("forward result:{}".format(str(forwardResult)))
+                        forwardResult.display()
+                        self.mapAndSend(forwardResult,pktSend,dev)
+                        
 
-                                        # Share the same arp request for the same dst IP
-                                        insertFlg = 1
-                                        for w in waitQueue:
-                                            w_arp_header = w.arpPkt.get_header(Arp)
-                                            arp_request_header = arp_request.get_header(Arp)
-                                            if w_arp_header.targetprotoaddr == arp_request_header.targetprotoaddr:
-                                                w.ethPktList.append(pktSend)
-                                                insertFlg = 0
-                                                break
-                                        if insertFlg == 1:
-                                            waitQueue.insert(0,waitQueueElement(pktSend,arp_request,forwardResult.dev,time.time(),0,dev))
-                                            log_debug("send packet on {}".format(str(forwardResult.dev)))
-                                            self.net.send_packet(forwardResult.dev,arp_request)
-                                        break
-
-
-                #ICMP
-                #icmp_header = xxxxx
-
-            # Check Queue
-            # periodically check queue.
-            # 1. if found mapping item in mappin g table, then send
-            # 2. check ARP status -- resend if needed --- drop if needed 
-            #
-            log_debug("Check waitQueue++++++++++++++++++++++++++++++++++")
+            log_debug("Check self.waitQueue++++++++++++++++++++++++++++++++++")
             curTime = time.time()
-            for w in waitQueue:
+            for w in self.waitQueue:
                 w.display()
                 if curTime - w.time >= 1.0:
                     if w.retry == 4 : # drop and send ICMP err
                         for p in w.ethPktList:
-                            ip = IPv4()
-                            for intf in my_interfaces:
-                                if intf.name == w.srcDevList[w.ethPktList.index(p)]:
-                                    ip.src = intf.ipaddr
-                            ip.dst = p[p.get_header_index(IPv4)].src
-                            ip.ttl = 64
-                            ip.protocol = IPProtocol.ICMP
-                            icmp = ICMP()
-                            icmp.icmptype = ICMPType.ICMPDestinationUnreachable
-                            icmp.icmpcode = DestinationUnreachable.HostUnreachable
-                            icmpErrPkt = ip + icmp
-                            log_debug("send packet on {}".format(str(w.srcDevList[w.ethPktList.index(p)])))
-                            self.net.send_packet(w.srcDevList[w.ethPktList.index(p)],icmpErrPkt)
-                        del waitQueue[waitQueue.index(w)]
+                            icmp_header = p.get_header(ICMP)
+                            if icmp_header is None or icmp_header.icmpcode != ICMPCodeDestinationUnreachable.HostUnreachable:
+                                pktSend = self.icmpErrPkt(p,ICMPType.DestinationUnreachable,ICMPCodeDestinationUnreachable.HostUnreachable)
+                                forwardResult = self.forwardingTableMatch(pktSend)
+                                log_debug("forward result2:{}".format(str(forwardResult)))
+                                forwardResult.display()
+                                if forwardResult is not None: #found forwarding result
+                                    log_debug("forward result:{}".format(str(forwardResult)))
+                                    forwardResult.display()
+                                    #pktSend = self.icmpErrPkt(p,ICMPType.DestinationUnreachable,ICMPCodeDestinationUnreachable.HostUnreachable)
+                                    self.mapAndSend(forwardResult,pktSend,dev)
+                        del self.waitQueue[self.waitQueue.index(w)]
                     else:
                         w.retry += 1
                         w.time = curTime
