@@ -26,9 +26,10 @@ class forwardingTableElement(object):
         self.netmask = netmask
         self.nxtHopIP = nxtHopIP
         self.dev = dev
+        self.prefixlen = 0
 
     def display(self):
-        print ("prefix=%s,netmask=%s,nxtHopIP=%s,dev=%s\n" % (self.prefix,self.netmask,self.nxtHopIP,self.dev))
+        print ("prefix=%s,netmask=%s,nxtHopIP=%s,dev=%s,prefixlen=%s\n" % (self.prefix,self.netmask,self.nxtHopIP,self.dev,self.prefixlen))
 
 
 class Router(object):
@@ -51,13 +52,21 @@ class Router(object):
         for intf in my_interfaces:
             print(intf)
             mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
+            forwardingTable.insert(0,forwardingTableElement(intf.ipaddr,intf.netmask,None,"router"))
         #    mappingTable[0].display()
 
         for line in fp:
             line = line.rstrip()
             item = line.split(" ")
             forwardingTable.insert(0,forwardingTableElement(item[0],item[1],item[2],item[3]))
+            netaddr = IPv4Network(item[0]+'/'+item[1])
+            forwardingTable[0].prefixlen = netaddr.prefixlen
             forwardingTable[0].display()
+
+        forwardingTable.sort(key=operator.attrgetter('prefixlen'),reverse=True)
+        for f in forwardingTable:
+            f.display()
+        
 
         
         while True:
@@ -98,6 +107,11 @@ class Router(object):
                                 print (arp_reply)
                                 self.net.send_packet(dev,arp_reply)
                                 break
+
+                ipv4_header = pkt.get_header(IPv4)
+                if ipv4_header is not None:
+                    netaddr = IPv4Network()
+                    
 
                     
                     
