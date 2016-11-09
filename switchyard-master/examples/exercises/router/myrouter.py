@@ -28,7 +28,7 @@ class forwardingTableElement(object):
         self.dev = dev
 
     def display(self):
-        print ("prefix=%s,netmask=%s,nxtHopIP=%s,dev=%s\n" % (self.ip,self.netmask,self.nxtHopIP,self.dev))
+        print ("prefix=%s,netmask=%s,nxtHopIP=%s,dev=%s\n" % (self.prefix,self.netmask,self.nxtHopIP,self.dev))
 
 
 class Router(object):
@@ -49,12 +49,14 @@ class Router(object):
 
         my_interfaces = self.net.interfaces()
         for intf in my_interfaces:
+            print(intf)
             mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
         #    mappingTable[0].display()
 
         for line in fp:
+            line = line.rstrip()
             item = line.split(" ")
-            forwardingTable.insert(0,forwardingTableElement(line[0],line[1],line[2],line[3]))
+            forwardingTable.insert(0,forwardingTableElement(item[0],item[1],item[2],item[3]))
             forwardingTable[0].display()
 
         
