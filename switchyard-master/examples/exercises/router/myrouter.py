@@ -34,11 +34,7 @@ class forwardingTableElement(object):
 class Router(object):
     def __init__(self, net):
         self.net = net
-        self.mappingTable = []
-        self.forwardingTable = []
         # other initialization stuff here
-        file = os.path.join(os.path.dirname(__file__),"forwarding_table.txt")
-        fp = open(file,'r+')
 
 
     def router_main(self):    
@@ -46,15 +42,20 @@ class Router(object):
         Main method for router; we stay in a loop in this method, receiving
         packets until the end of time.
         '''
+        mappingTable = []
+        forwardingTable = []
+        file = os.path.join(os.path.dirname(__file__),"forwarding_table.txt")
+        fp = open(file,'r+')
+
         my_interfaces = self.net.interfaces()
         for intf in my_interfaces:
-            self.mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
-        #    self.mappingTable[0].display()
+            mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
+        #    mappingTable[0].display()
 
         for line in fp:
             item = line.split(" ")
-            self.forwardingTable.insert(0,forwardingTableElement(line[0],line[1],line[2],line[3]))
-            self.forwardingTable[0].display()
+            forwardingTable.insert(0,forwardingTableElement(line[0],line[1],line[2],line[3]))
+            forwardingTable[0].display()
 
         
         while True:
@@ -80,7 +81,7 @@ class Router(object):
                 if arp_header is not None:
                     if arp_header.operation == ArpOperation.Request:
                         update=0
-                        for item in self.mappingTable:
+                        for item in mappingTable:
                             item.display()
                             if item.ip == arp_header.senderprotoaddr:
                                 item.mac = arp_header.senderhwaddr
@@ -88,7 +89,7 @@ class Router(object):
                                 update = 1
                                 break
                         if update == 0:
-                            self.mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr))
+                            mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr))
                         for intf in my_interfaces:
                             if intf.ipaddr == arp_header.targetprotoaddr:
                                 arp_reply = create_ip_arp_reply(intf.ethaddr,arp_header.senderhwaddr,arp_header.targetprotoaddr,arp_header.senderprotoaddr)
