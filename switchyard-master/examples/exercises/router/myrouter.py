@@ -20,11 +20,25 @@ class mappingTableElement(object):
     def display(self):
         print ("ip=%s,mac=%s,TTL=%s\n" % (self.ip,self.mac,self.TTL))
 
+class forwardingTableElement(object):
+    def __init__(self,prefix=None,netmask=None,nxtHopIP=None,dev=None):
+        self.prefix = prefix
+        self.netmask = netmask
+        self.nxtHopIP = nxtHopIP
+        self.dev = dev
+
+    def display(self):
+        print ("prefix=%s,netmask=%s,nxtHopIP=%s,dev=%s\n" % (self.ip,self.netmask,self.nxtHopIP,self.dev))
+
+
 class Router(object):
     def __init__(self, net):
         self.net = net
         self.mappingTable = []
+        self.forwardingTable = []
         # other initialization stuff here
+        file = os.path.join(os.path.dirname(__file__),"forwarding_table.txt")
+        fp = open(file,'r+')
 
 
     def router_main(self):    
@@ -34,8 +48,14 @@ class Router(object):
         '''
         my_interfaces = self.net.interfaces()
         for intf in my_interfaces:
-            self.mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr))
-            self.mappingTable[0].display()
+            self.mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
+        #    self.mappingTable[0].display()
+
+        for line in fp:
+            item = line.split(" ")
+            self.forwardingTable.insert(0,forwardingTableElement(line[0],line[1],line[2],line[3]))
+            self.forwardingTable[0].display()
+
         
         while True:
             gotpkt = True
