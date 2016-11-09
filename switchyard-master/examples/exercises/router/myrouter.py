@@ -10,6 +10,7 @@ import time
 from switchyard.lib.packet import *
 from switchyard.lib.address import *
 from switchyard.lib.common import *
+import operator
 
 class mappingTableElement(object):
     def __init__(self,ip=None,mac=None,TTL=64):
@@ -44,6 +45,7 @@ class Router(object):
         packets until the end of time.
         '''
         mappingTable = []
+        forwardingTableRouter = []
         forwardingTable = []
         file = os.path.join(os.path.dirname(__file__),"forwarding_table.txt")
         fp = open(file,'r+')
@@ -52,7 +54,7 @@ class Router(object):
         for intf in my_interfaces:
             print(intf)
             mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
-            forwardingTable.insert(0,forwardingTableElement(intf.ipaddr,intf.netmask,None,"router"))
+            forwardingTableRouter.insert(0,forwardingTableElement(intf.ipaddr,intf.netmask,None,"router"))
         #    mappingTable[0].display()
 
         for line in fp:
@@ -64,9 +66,11 @@ class Router(object):
             forwardingTable[0].display()
 
         forwardingTable.sort(key=operator.attrgetter('prefixlen'),reverse=True)
+
         for f in forwardingTable:
             f.display()
-        
+        for f in forwardingTableRouter:
+            f.display()
 
         
         while True:
