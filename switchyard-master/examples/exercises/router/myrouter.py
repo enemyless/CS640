@@ -58,7 +58,7 @@ class Router(object):
                 print (arp_header)                
                 # ARP request
                 if arp_header is not None:
-                    if arp_header.targethwaddr == "ff:ff:ff:ff:ff:ff":
+                    if arp_header.operation == ArpOperation.Request:
                         update=0
                         for item in self.mappingTable:
                             item.display()
