@@ -22,12 +22,12 @@ class mappingTableElement(object):
         print ("ip=%s,mac=%s,TTL=%s\n" % (self.ip,self.mac,self.TTL))
 
 class forwardingTableElement(object):
-    def __init__(self,prefix=None,netmask=None,nxtHopIP=None,dev=None):
+    def __init__(self,prefix=None,netmask=None,nxtHopIP=None,dev=None,prefixlen=None):
         self.prefix = prefix
         self.netmask = netmask
         self.nxtHopIP = nxtHopIP
         self.dev = dev
-        self.prefixlen = 0
+        self.prefixlen = prefixlen
 
     def display(self):
         print ("prefix=%s,netmask=%s,nxtHopIP=%s,dev=%s,prefixlen=%s\n" % (self.prefix,self.netmask,self.nxtHopIP,self.dev,self.prefixlen))
@@ -54,16 +54,20 @@ class Router(object):
         for intf in my_interfaces:
             print(intf)
             mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
-            forwardingTable.insert(0,forwardingTableElement(IPv4Network(int(intf.ipaddr)&int(intf.netmask)),intf.netmask,None,intf.name))
+            intf_network = str(IPv4Network(int(intf.ipaddr)&int(intf.netmask)))
+            intf_net = intf_network.split('/')
+            intf_prefix=IPv4Network(intf_net[0]+'/'+str(intf.netmask))
+            intf_prefixlen = intf_prefix.prefixlen
+            
+            forwardingTable.insert(0,forwardingTableElement(intf_net[0],intf.netmask,None,intf.name,intf_prefixlen))
         #    mappingTable[0].display()
 
         for line in fp:
             line = line.rstrip()
             item = line.split(" ")
-            forwardingTable.insert(0,forwardingTableElement(item[0],item[1],item[2],item[3]))
             netaddr = IPv4Network(item[0]+'/'+item[1])
-            forwardingTable[0].prefixlen = netaddr.prefixlen
-            forwardingTable[0].display()
+            forwardingTable.insert(0,forwardingTableElement(item[0],item[1],item[2],item[3],netaddr.prefixlen))
+            #forwardingTable[0].display()
 
         forwardingTable.sort(key=operator.attrgetter('prefixlen'),reverse=True)
 
@@ -112,29 +116,29 @@ class Router(object):
                                 self.net.send_packet(dev,arp_reply)
                                 break
 
-                ipv4_header = pkt.get_header(IPv4)
-                if ipv4_header is not None:
-                    # for the router itself
-                    dstRounter = 0;
-                    for intf in my_interfaces:
-                        if intf.ipaddr == ipv4_header.dst:
-                            dstRounter = 1
-                            break
+     #           ipv4_header = pkt.get_header(IPv4)
+     #           if ipv4_header is not None:
+     #               # for the router itself
+     #               dstRounter = 0;
+     #               for intf in my_interfaces:
+     #                   if intf.ipaddr == ipv4_header.dst:
+     #                       dstRounter = 1
+     #                       break
 
-                    if dstRounter = 1:
-                        continue # go back to receive packet
+     #               if dstRounter = 1:
+     #                   continue # go back to receive packet
 
-                    # longest path comparison
-                    forwardResult = None
-                    for f in forwardingTable:
-                        prefixnet = IPv4Network(f.prefix + '/' + f.prefixlen)
-                        match = ipv4_header.dst in prefixnet
-                        if match:
-                            forwardResult = f
-                            break
+     #               # longest path comparison
+     #               forwardResult = None
+     #               for f in forwardingTable:
+     #                   prefixnet = IPv4Network(f.prefix + '/' + f.prefixlen)
+     #                   match = ipv4_header.dst in prefixnet
+     #                   if match:
+     #                       forwardResult = f
+     #                       break
 
-                    if forwardResult = None:
-                        continue # not in the forwarding table
+     #               if forwardResult = None:
+     #                   continue # not in the forwarding table
 
                     
 
@@ -143,7 +147,7 @@ class Router(object):
 
 
 
-                    netaddr = IPv4Network()
+     #               netaddr = IPv4Network()
                     
 
                     
