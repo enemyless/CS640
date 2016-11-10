@@ -54,7 +54,7 @@ class Router(object):
         for intf in my_interfaces:
             print(intf)
             mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
-            forwardingTableRouter.insert(0,forwardingTableElement(intf.ipaddr,intf.netmask,None,"router"))
+            forwardingTable.insert(0,forwardingTableElement(IPv4Network(int(intf.ipaddr)&int(intf.netmask)),intf.netmask,None,intf.name))
         #    mappingTable[0].display()
 
         for line in fp:
@@ -114,6 +114,35 @@ class Router(object):
 
                 ipv4_header = pkt.get_header(IPv4)
                 if ipv4_header is not None:
+                    # for the router itself
+                    dstRounter = 0;
+                    for intf in my_interfaces:
+                        if intf.ipaddr == ipv4_header.dst:
+                            dstRounter = 1
+                            break
+
+                    if dstRounter = 1:
+                        continue # go back to receive packet
+
+                    # longest path comparison
+                    forwardResult = None
+                    for f in forwardingTable:
+                        prefixnet = IPv4Network(f.prefix + '/' + f.prefixlen)
+                        match = ipv4_header.dst in prefixnet
+                        if match:
+                            forwardResult = f
+                            break
+
+                    if forwardResult = None:
+                        continue # not in the forwarding table
+
+                    
+
+
+
+
+
+
                     netaddr = IPv4Network()
                     
 
