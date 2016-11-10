@@ -47,6 +47,8 @@ class Router(object):
         mappingTable = []
         forwardingTableRouter = []
         forwardingTable = []
+        waitQueue = []
+
         file = os.path.join(os.path.dirname(__file__),"forwarding_table.txt")
         fp = open(file,'r+')
 
@@ -116,39 +118,71 @@ class Router(object):
                                 self.net.send_packet(dev,arp_reply)
                                 break
 
-     #           ipv4_header = pkt.get_header(IPv4)
-     #           if ipv4_header is not None:
-     #               # for the router itself
-     #               dstRounter = 0;
-     #               for intf in my_interfaces:
-     #                   if intf.ipaddr == ipv4_header.dst:
-     #                       dstRounter = 1
-     #                       break
-
-     #               if dstRounter = 1:
-     #                   continue # go back to receive packet
-
-     #               # longest path comparison
-     #               forwardResult = None
-     #               for f in forwardingTable:
-     #                   prefixnet = IPv4Network(f.prefix + '/' + f.prefixlen)
-     #                   match = ipv4_header.dst in prefixnet
-     #                   if match:
-     #                       forwardResult = f
-     #                       break
-
-     #               if forwardResult = None:
-     #                   continue # not in the forwarding table
-
+                ipv4_header = pkt.get_header(IPv4)
+                if ipv4_header is not None:
+                    # for the router itself
+                    dstRouter = 0;
+                    forwardResult = None
+                    mappingResult = None
                     
+                    for intf in my_interfaces:
+                        if intf.ipaddr == ipv4_header.dst:
+                            dstRouter = 1
+                            break
+
+                    if dstRouter != 1:
+
+                        # longest path comparison
+                        for f in forwardingTable:
+                            prefixnet = IPv4Network(f.prefix + '/' + f.prefixlen)
+                            match = ipv4_header.dst in prefixnet
+                            if match:
+                                forwardResult = f
+                                break
+
+                    if forwardResult is not None:
+                        # mapping table lookup
+                        for m in mappingTable:
+                            if m.ip == f.nxtHopIP:
+                                mappingResult = m
+                                break
+                        
+                        # Construct header
+                        ipv4_header.ttl--
+                        eth_header = Ethernet()
+                        if intf.name == forwardingResult.dev:
+                            eth_header.src = intf.ethaddr
+                            break
+                        eth_header.dst = None
+                        eth_header.ethertype = EtherType.IPv4
+                        p = eth_header + ipv4_header
+                        
+                        if mappingResult is not None:
+                            # send
+                            for intf in my_interfaces:
+                                p[0].dst = mappingResult.mac
+                                self.net.send_packet(m.dev,p)
+
+                        else:
+                            # ARP request
+                            for intf in my_interfaces:
+                                if intf.name == forwardingResult.dev:
+                                    arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,forwardingResult.nxtHopIP)
+                                    self.net.send_packet(forwardingResult.dev,arp_request)
+# TODO new data structue to record time and relate P with ARP request
+                            waitQueue.insert(0,p)
 
 
+                #ICMP
+                #icmp_header = xxxxx
 
+            # Check Queue
+            # periodically check queue.
+            # 1. if found mapping item in mappin g table, then send
+            # 2. check ARP status -- resend if needed --- drop if needed 
+            #
 
-
-
-     #               netaddr = IPv4Network()
-                    
+        
 
                     
                     
