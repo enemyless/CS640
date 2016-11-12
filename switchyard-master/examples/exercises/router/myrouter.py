@@ -13,13 +13,13 @@ from switchyard.lib.common import *
 import operator
 
 class mappingTableElement(object):
-    def __init__(self,ip=None,mac=None,TTL=64):
+    def __init__(self,ip=None,mac=None,dev=None):
         self.ip = ip
         self.mac = mac
-        self.TTL = TTL
+        self.dev = dev 
 
     def display(self):
-        print ("ip=%s,mac=%s,TTL=%s\n" % (self.ip,self.mac,self.TTL))
+        print ("ip=%s,mac=%s,dev=%s\n" % (self.ip,self.mac,self.dev))
 
 class forwardingTableElement(object):
     def __init__(self,prefix=None,netmask=None,nxtHopIP=None,dev=None,prefixlen=None):
@@ -66,7 +66,7 @@ class Router(object):
             mappingTable.insert(0,mappingTableElement(intf.ipaddr,intf.ethaddr,intf.name))
             intf_network = str(IPv4Network(int(intf.ipaddr)&int(intf.netmask)))
             intf_net = intf_network.split('/')
-            intf_prefix=IPv4Network(intf_net[0]+'/'+str(intf.netmask))
+            intf_prefix=IPv4Network(str(intf_net[0])+'/'+str(intf.netmask))
             intf_prefixlen = intf_prefix.prefixlen
             
             forwardingTable.insert(0,forwardingTableElement(intf_net[0],intf.netmask,None,intf.name,intf_prefixlen))
@@ -101,7 +101,7 @@ class Router(object):
             if gotpkt:
                 log_debug("Got a packet: {}".format(str(pkt)))
 
-                print ("got a packet")
+                print ("got a packet-----------------------------------")
                 print (pkt)
                 # ARP packet
                 arp_header = pkt.get_header(Arp)
@@ -126,14 +126,14 @@ class Router(object):
                                 self.net.send_packet(dev,arp_reply)
                                 break
 
-                    else if arp_header.operator == ArpOperation.Reply:
+                    elif arp_header.operator == ArpOperation.Reply:
                         mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr))
                         for p in waitQueue:
                             if p.arpPkt.targetprotoaddr == arp_header.senderprotoaddr:
                                 p.ethPkt[0].dst = arp_header.senderhwaddr
                                 self.net.send_packet(p.dev,p.ethPkt) 
                                 break
-
+                # ipv4 packet
                 ipv4_header = pkt.get_header(IPv4)
                 if ipv4_header is not None:
                     # for the router itself
@@ -149,7 +149,7 @@ class Router(object):
                     if dstRouter != 1:
                         # longest path comparison
                         for f in forwardingTable:
-                            prefixnet = IPv4Network(f.prefix + '/' + f.prefixlen)
+                            prefixnet = IPv4Network(str(f.prefix) + '/' + str(f.prefixlen))
                             match = ipv4_header.dst in prefixnet
                             if match:
                                 forwardResult = f
@@ -163,12 +163,12 @@ class Router(object):
                                 break
                         
                         # Construct header
-                        ipv4_header.ttl--
+                        ipv4_header.ttl -= 1
                         eth_header = Ethernet()
-                        if intf.name == forwardingResult.dev:
+                        if intf.name == forwardResult.dev:
                             eth_header.src = intf.ethaddr
                             break
-                        eth_header.dst = None
+                        eth_header.dst = "ff:ff:ff:ff:ff:ff"
                         eth_header.ethertype = EtherType.IPv4
                         p = eth_header + ipv4_header
                         
@@ -181,10 +181,10 @@ class Router(object):
                         else:
                             # ARP request
                             for intf in my_interfaces:
-                                if intf.name == forwardingResult.dev:
-                                    arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,forwardingResult.nxtHopIP)
-                                    self.net.send_packet(forwardingResult.dev,arp_request)
-                                    waitQueue.insert(0,waitQueueElement(p,arp_request,forwardingResult.dev,time.time(),0))
+                                if intf.name == forwardResult.dev:
+                                    arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,forwardResult.nxtHopIP)
+                                    self.net.send_packet(forwardResult.dev,arp_request)
+                                    waitQueue.insert(0,waitQueueElement(p,arp_request,forwardResult.dev,time.time(),0))
                                     break
 
 
@@ -201,8 +201,8 @@ class Router(object):
                 if p.time - curTime >= 1.0:
                     if p.retry == 5 : # drop
                         del p
-                    else
-                        p.retry++
+                    else:
+                        p.retry += 1
                         p.time = curTime
                         self.net.send_packet(p.dev,p.arpPkt)
                         
