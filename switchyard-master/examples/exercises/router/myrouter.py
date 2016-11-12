@@ -99,13 +99,11 @@ class Router(object):
                 break
 
             if gotpkt:
-                log_debug("Got a packet: {}".format(str(pkt)))
+                log_debug("Got a packet-------------------------------------: {}".format(str(pkt)))
 
-                print ("got a packet-----------------------------------")
-                print (pkt)
                 # ARP packet
                 arp_header = pkt.get_header(Arp)
-                print (arp_header)                
+                log_debug("{}".arp_header)                
                 # ARP request
                 if arp_header is not None:
                     if arp_header.operation == ArpOperation.Request:
@@ -122,7 +120,7 @@ class Router(object):
                         for intf in my_interfaces:
                             if intf.ipaddr == arp_header.targetprotoaddr:
                                 arp_reply = create_ip_arp_reply(intf.ethaddr,arp_header.senderhwaddr,arp_header.targetprotoaddr,arp_header.senderprotoaddr)
-                                print (arp_reply)
+                                #print (arp_reply)
                                 self.net.send_packet(dev,arp_reply)
                                 break
 
