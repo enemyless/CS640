@@ -32,6 +32,14 @@ class forwardingTableElement(object):
     def display(self):
         print ("prefix=%s,netmask=%s,nxtHopIP=%s,dev=%s,prefixlen=%s\n" % (self.prefix,self.netmask,self.nxtHopIP,self.dev,self.prefixlen))
 
+class waitQueueElement(object):
+    def __init__(self,ethPkt=None,arpPkt=None,dev=None,time=0,retry=0):
+        self.ethPkt = ethPkt
+        self.arpPkt = arpPkt
+        self.dev = dev
+        self.time = time
+        self.retry = retry
+
 
 class Router(object):
     def __init__(self, net):
@@ -118,6 +126,14 @@ class Router(object):
                                 self.net.send_packet(dev,arp_reply)
                                 break
 
+                    else if arp_header.operator == ArpOperation.Reply:
+                        mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr))
+                        for p in waitQueue:
+                            if p.arpPkt.targetprotoaddr == arp_header.senderprotoaddr:
+                                p.ethPkt[0].dst = arp_header.senderhwaddr
+                                self.net.send_packet(p.dev,p.ethPkt) 
+                                break
+
                 ipv4_header = pkt.get_header(IPv4)
                 if ipv4_header is not None:
                     # for the router itself
@@ -131,7 +147,6 @@ class Router(object):
                             break
 
                     if dstRouter != 1:
-
                         # longest path comparison
                         for f in forwardingTable:
                             prefixnet = IPv4Network(f.prefix + '/' + f.prefixlen)
@@ -169,8 +184,8 @@ class Router(object):
                                 if intf.name == forwardingResult.dev:
                                     arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,forwardingResult.nxtHopIP)
                                     self.net.send_packet(forwardingResult.dev,arp_request)
-# TODO new data structue to record time and relate P with ARP request
-                            waitQueue.insert(0,p)
+                                    waitQueue.insert(0,waitQueueElement(p,arp_request,forwardingResult.dev,time.time(),0))
+                                    break
 
 
                 #ICMP
@@ -181,7 +196,18 @@ class Router(object):
             # 1. if found mapping item in mappin g table, then send
             # 2. check ARP status -- resend if needed --- drop if needed 
             #
-
+            curTime = time.time()
+            for p in waitQueue:
+                if p.time - curTime >= 1.0:
+                    if p.retry == 5 : # drop
+                        del p
+                    else
+                        p.retry++
+                        p.time = curTime
+                        self.net.send_packet(p.dev,p.arpPkt)
+                        
+                    
+#def longestPathMatch
         
 
                     
