@@ -103,9 +103,9 @@ class Router(object):
 
                 # ARP packet
                 arp_header = pkt.get_header(Arp)
-                log_debug("{}".arp_header)                
                 # ARP request
                 if arp_header is not None:
+                    log_debug("{}".format(str(arp_header)))                
                     if arp_header.operation == ArpOperation.Request:
                         update=0
                         for item in mappingTable:
@@ -134,6 +134,7 @@ class Router(object):
                 # ipv4 packet
                 ipv4_header = pkt.get_header(IPv4)
                 if ipv4_header is not None:
+                    log_debug("{}".format(str(ipv4_header)))                
                     # for the router itself
                     dstRouter = 0;
                     forwardResult = None
