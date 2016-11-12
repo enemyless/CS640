@@ -134,7 +134,7 @@ class Router(object):
                 # ipv4 packet
                 ipv4_header = pkt.get_header(IPv4)
                 if ipv4_header is not None:
-                    log_debug("{}".format(str(ipv4_header)))                
+                    log_debug("{}".format(str(ipv4_header)))
                     # for the router itself
                     dstRouter = 0;
                     forwardResult = None
@@ -153,14 +153,15 @@ class Router(object):
                             if match:
                                 forwardResult = f
                                 break
-
+                    log_debug("{}".format(str(forwardResult)))
                     if forwardResult is not None:
                         # mapping table lookup
                         for m in mappingTable:
                             if m.ip == f.nxtHopIP:
                                 mappingResult = m
                                 break
-                        
+                        log_debug("{}".format(str(mappingResult)))
+
                         # Construct header
                         ipv4_header.ttl -= 1
                         eth_header = Ethernet()
@@ -171,6 +172,7 @@ class Router(object):
                         eth_header.ethertype = EtherType.IPv4
                         p = eth_header + ipv4_header
                         
+
                         if mappingResult is not None:
                             # send
                             for intf in my_interfaces:
