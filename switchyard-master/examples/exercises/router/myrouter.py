@@ -34,14 +34,14 @@ class forwardingTableElement(object):
 
 class waitQueueElement(object):
     def __init__(self,ethPkt=None,arpPkt=None,dev=None,time=0,retry=0):
-        self.ethPkt = ethPkt
+        self.ethPktList = [ethPkt]
         self.arpPkt = arpPkt
         self.dev = dev
         self.time = time
         self.retry = retry
     
     def display(self):
-        print (self.ethPkt,self.arpPkt,"dev=%s,time=%s,retry=%d" % (self.dev,self.time,self.retry))
+        print (self.ethPktList,self.arpPkt,"dev=%s,time=%s,retry=%d" % (self.dev,self.time,self.retry))
 
 
 class Router(object):
@@ -106,9 +106,11 @@ class Router(object):
 
                 # ARP packet
                 arp_header = pkt.get_header(Arp)
-                # ARP request
+                
                 if arp_header is not None:
-                    log_debug("{}".format(str(arp_header)))                
+                    log_debug("{}".format(str(arp_header)))
+
+                    # ARP request
                     if arp_header.operation == ArpOperation.Request:
                         log_debug("got arp request")                
                         update=0
@@ -127,7 +129,8 @@ class Router(object):
                                 #print (arp_reply)
                                 self.net.send_packet(dev,arp_reply)
                                 break
-
+                   
+                    # ARP reply
                     elif arp_header.operation == ArpOperation.Reply:
                         log_debug("got arp reply")                
                         mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr))
@@ -135,12 +138,14 @@ class Router(object):
                             w_arp_header = w.arpPkt.get_header(Arp)
                             if w_arp_header.targetprotoaddr == arp_header.senderprotoaddr:
                                 print("match")
-                                w.ethPkt[0].dst = arp_header.senderhwaddr
-                                w.display()
-                                self.net.send_packet(w.dev,w.ethPkt) 
-                                del w
+                                for p in w.ethPktList:
+                                    p[p.get_header_index(Ethernet)].dst = arp_header.senderhwaddr
+                                    #w.display()
+                                    self.net.send_packet(w.dev,p) 
+                                del waitQueue.index(w)
                                 break
-                # ipv4 packet
+                
+                # ipv4 packet (maybe ICMP or other types)
                 ipv4_header = pkt.get_header(IPv4)
                 if ipv4_header is not None:
                     log_debug("{}".format(str(ipv4_header)))
@@ -148,9 +153,12 @@ class Router(object):
                     dstRouter = 0;
                     forwardResult = None
                     mappingResult = None
+                   
                     
+                    # if ICMP request for router interface then send back ICMP reply, else drop
                     for intf in my_interfaces:
                         if intf.ipaddr == ipv4_header.dst:
+                            icmp
                             dstRouter = 1
                             break
 
@@ -203,7 +211,13 @@ class Router(object):
                                         arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,forwardResult.nxtHopIP)
                                     log_debug("{}".format(str(arp_request)))
                                     self.net.send_packet(forwardResult.dev,arp_request)
-                                    waitQueue.insert(0,waitQueueElement(p,arp_request,forwardResult.dev,time.time(),0))
+
+                                    # Share the same arp request for the same dst IP
+                                    for w in waitQueue:
+                                        if w.arpPkt[0].targetprotoaddr == arp_request.targetprotoaddr:
+                                            w.ethPktList.insert(-1,p)
+                                        else:
+                                            waitQueue.insert(0,waitQueueElement(p,arp_request,forwardResult.dev,time.time(),0))
                                     break
 
 
@@ -218,8 +232,9 @@ class Router(object):
             curTime = time.time()
             for w in waitQueue:
                 if w.time - curTime >= 1.0:
-                    if w.retry == 5 : # drop
-                        del w
+                    if w.retry == 5 : # drop and send ICMP err
+                        #TODO ICMP err
+                        del waitQueue.index(w)
                     else:
                         w.retry += 1
                         w.time = curTime
