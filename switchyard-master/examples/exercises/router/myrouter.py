@@ -39,6 +39,9 @@ class waitQueueElement(object):
         self.dev = dev
         self.time = time
         self.retry = retry
+    
+    def display(self):
+        print (self.ethPkt,self.arpPkt,"dev=%s,time=%s,retry=%d" % (self.dev,self.time,self.retry))
 
 
 class Router(object):
@@ -107,6 +110,7 @@ class Router(object):
                 if arp_header is not None:
                     log_debug("{}".format(str(arp_header)))                
                     if arp_header.operation == ArpOperation.Request:
+                        log_debug("got arp request")                
                         update=0
                         for item in mappingTable:
                             item.display()
@@ -124,12 +128,17 @@ class Router(object):
                                 self.net.send_packet(dev,arp_reply)
                                 break
 
-                    elif arp_header.operator == ArpOperation.Reply:
+                    elif arp_header.operation == ArpOperation.Reply:
+                        log_debug("got arp reply")                
                         mappingTable.insert(0,mappingTableElement(arp_header.senderprotoaddr,arp_header.senderhwaddr))
-                        for p in waitQueue:
-                            if p.arpPkt.targetprotoaddr == arp_header.senderprotoaddr:
-                                p.ethPkt[0].dst = arp_header.senderhwaddr
-                                self.net.send_packet(p.dev,p.ethPkt) 
+                        for w in waitQueue:
+                            w_arp_header = w.arpPkt.get_header(Arp)
+                            if w_arp_header.targetprotoaddr == arp_header.senderprotoaddr:
+                                print("match")
+                                w.ethPkt[0].dst = arp_header.senderhwaddr
+                                w.display()
+                                self.net.send_packet(w.dev,w.ethPkt) 
+                                del w
                                 break
                 # ipv4 packet
                 ipv4_header = pkt.get_header(IPv4)
@@ -153,27 +162,32 @@ class Router(object):
                             if match:
                                 forwardResult = f
                                 break
-                    log_debug("{}".format(str(forwardResult)))
+                    log_debug("forward result:{}".format(str(forwardResult)))
                     if forwardResult is not None:
+                        forwardResult.display()
                         # mapping table lookup
                         for m in mappingTable:
                             if m.ip == f.nxtHopIP:
                                 mappingResult = m
                                 break
-                        log_debug("{}".format(str(mappingResult)))
 
                         # Construct header
                         ipv4_header.ttl -= 1
                         eth_header = Ethernet()
-                        if intf.name == forwardResult.dev:
-                            eth_header.src = intf.ethaddr
-                            break
+                        for intf in my_interfaces:
+                            if intf.name == forwardResult.dev:
+                                eth_header.src = intf.ethaddr
+                                break
                         eth_header.dst = "ff:ff:ff:ff:ff:ff"
                         eth_header.ethertype = EtherType.IPv4
                         p = eth_header + ipv4_header
+                        log_debug("pkt:{}".format(str(p)))
+
                         
+                        log_debug("mapping result:{}".format(str(mappingResult)))
 
                         if mappingResult is not None:
+                            mappingResult.display()
                             # send
                             for intf in my_interfaces:
                                 p[0].dst = mappingResult.mac
@@ -183,7 +197,11 @@ class Router(object):
                             # ARP request
                             for intf in my_interfaces:
                                 if intf.name == forwardResult.dev:
-                                    arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,forwardResult.nxtHopIP)
+                                    if forwardResult.nxtHopIP is None: # network connected to router interface
+                                        arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,ipv4_header.dst)
+                                    else:
+                                        arp_request = create_ip_arp_request(eth_header.src,intf.ipaddr,forwardResult.nxtHopIP)
+                                    log_debug("{}".format(str(arp_request)))
                                     self.net.send_packet(forwardResult.dev,arp_request)
                                     waitQueue.insert(0,waitQueueElement(p,arp_request,forwardResult.dev,time.time(),0))
                                     break
@@ -198,14 +216,14 @@ class Router(object):
             # 2. check ARP status -- resend if needed --- drop if needed 
             #
             curTime = time.time()
-            for p in waitQueue:
-                if p.time - curTime >= 1.0:
-                    if p.retry == 5 : # drop
-                        del p
+            for w in waitQueue:
+                if w.time - curTime >= 1.0:
+                    if w.retry == 5 : # drop
+                        del w
                     else:
-                        p.retry += 1
-                        p.time = curTime
-                        self.net.send_packet(p.dev,p.arpPkt)
+                        w.retry += 1
+                        w.time = curTime
+                        self.net.send_packet(w.dev,w.arpPkt)
                         
                     
 #def longestPathMatch
