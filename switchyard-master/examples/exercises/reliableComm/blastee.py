@@ -6,6 +6,7 @@ from switchyard.lib.common import *
 from threading import *
 import time
 import re
+import os
 
 def switchy_main(net):
     my_interfaces = net.interfaces()
@@ -13,9 +14,12 @@ def switchy_main(net):
     myips = [intf.ipaddr for intf in my_interfaces]
     myip = myips[0]
 
-    fp = open("blastee_params.txt",'r+')
+    script_dir = os.path.dirname(__file__)
+    filename = "blastee_params.txt"
+    fp = open(os.path.join(script_dir,filename),'r+')
     blaster_IP = None
     pktNum = 0
+    pktList = []
     for line in fp:
         log_debug("line:{}".format(line))
         m = re.search(".*-b\s+([^ \t]+)",line)
@@ -46,6 +50,8 @@ def switchy_main(net):
 
             seqNumRaw = pkt[3].to_bytes()[0:4]
             seqNum = int.from_bytes(seqNumRaw,byteorder='big')
+            if seqNum not in pktList:
+                pktList += [seqNum]
             log_debug("seqNum:{}".format(seqNum))
             
             payloadLen = int.from_bytes(pkt[3].to_bytes()[4:6],byteorder='big')
@@ -73,6 +79,10 @@ def switchy_main(net):
 
             pktSend = pkt[0]+pkt[1]+pkt[2]+rawdata
             net.send_packet(dev, pktSend)
+            log_debug("pktList:{}".format(pktList))
+            log_debug("pktlen:{}".format(len(pktList)))
+            if len(pktList)==pktNum:
+                break
 
 #a=12234567
 #b=a.to_bytes(4,'big')       b=b'\x00\x12\xd6\x87'

@@ -6,6 +6,7 @@ from switchyard.lib.common import *
 from random import randint
 import time
 import re
+import os
 
 def sendPkt(net,seqNum,myip,blastee_IP,payloadLen):
     pkt = Ethernet() + IPv4() + UDP()
@@ -30,7 +31,9 @@ def switchy_main(net):
     pktList=[]
     retranList=[]
 
-    fp = open("blaster_params.txt",'r+')
+    script_dir = os.path.dirname(__file__)
+    filename = "blaster_params.txt"
+    fp = open(os.path.join(script_dir,filename),'r+')
     blastee_IP = None
     pktNum = 0
     payloadLen = 0

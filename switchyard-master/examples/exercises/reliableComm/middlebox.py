@@ -7,6 +7,7 @@ from threading import *
 import random
 import time
 import re
+import os
 
 def switchy_main(net):
 
@@ -14,7 +15,9 @@ def switchy_main(net):
     mymacs = [intf.ethaddr for intf in my_intf]
     myips = [intf.ipaddr for intf in my_intf]
 
-    fp = open("middlebox_params.txt",'r+')
+    script_dir = os.path.dirname(__file__)
+    filename = "middlebox_params.txt"
+    fp = open(os.path.join(script_dir,filename),'r+')
     drop_rate = 0
     drop_num = 0
     total_num = 0
