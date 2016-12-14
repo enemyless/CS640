@@ -16,6 +16,8 @@ def switchy_main(net):
 
     fp = open("middlebox_params.txt",'r+')
     drop_rate = 0
+    drop_num = 0
+    total_num = 0
     for line in fp:
         m = re.search("-d\s+([^ \t]+)",line)
         if m:
@@ -36,6 +38,8 @@ def switchy_main(net):
 
         if gotpkt:
             log_debug("I got a packet {}".format(pkt))
+            log_debug("total_num: {}".format(total_num))
+            log_debug("drop_num: {}".format(drop_num))
 
         if dev == "middlebox-eth0":
             log_debug("Received from blaster")
@@ -47,8 +51,10 @@ def switchy_main(net):
 
             seqNum = int.from_bytes(pkt[3].to_bytes()[0:4],byteorder='big')
             rand = random.random()
+            total_num += 1
             if rand < drop_rate:
                 log_debug("seqNum:{} dropped".format(seqNum))
+                drop_num += 1
                 continue
 
             log_debug("seqNum:{} pass to blastee".format(seqNum))

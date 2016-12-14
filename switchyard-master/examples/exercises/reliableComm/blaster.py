@@ -41,6 +41,11 @@ def switchy_main(net):
     RHS = 0
     startTime = 0
     pkt_ptr = 1
+    retransNum = 0
+    retransNum1 = 0
+    coarseTONum = 0
+    totalTransNum = 0
+    retranListAll = []
 
     for line in fp:
         m = re.search("-b\s+([^ \t]+)",line)
@@ -73,7 +78,7 @@ def switchy_main(net):
             rcvTimeout = float(m.group(1))
             log_debug("rcvTimeout:{}".format(rcvTimeout))
 
-    
+        startTimeFirst = time.time()
         startTime = time.time()
     while True:
         gotpkt = True
@@ -125,8 +130,12 @@ def switchy_main(net):
             # timeout logic
             curTime = time.time()
             if curTime-startTime > timeout/1000 :
+                coarseTONum += 1
                 log_debug("$$$$$$$$$$TIMEOUT$$$$$$")
+                retransNum += len(pktList)
                 retranList += pktList
+                retranListAll += pktList
+                retranListAll = list(set(retranListAll))
                 pktList = []
                 retranList.sort()
                 RHS = 0
@@ -137,6 +146,8 @@ def switchy_main(net):
             if retranList: # retrans list not empty, send first
                 if (retranList[0]-LHS+1 <= senderWin) or (LHS==0):
                     sendPkt(net,retranList[0],myip,blastee_IP,payloadLen)
+                    totalTransNum += 1
+                    retransNum1+=1
                     if LHS == 0:
                         LHS = retranList[0]
                         startTime = time.time()
@@ -146,6 +157,7 @@ def switchy_main(net):
             elif pkt_ptr <= pktNum: #retran list empty, test if the max pkt seq number reached
                 if (pkt_ptr-LHS+1 <= senderWin) or (LHS==0):
                     sendPkt(net,pkt_ptr,myip,blastee_IP,payloadLen)
+                    totalTransNum += 1
                     if LHS == 0:
                         LHS = pkt_ptr
                         startTime = time.time()
@@ -157,4 +169,16 @@ def switchy_main(net):
             log_debug("LHS:{},RHS:{},pkt_ptr:{},startTime:{}".format(LHS,RHS,pkt_ptr,startTime))
             log_debug("pktList:{}".format(pktList))
             log_debug("retranList:{}".format(retranList))
+
+
+    totalTime = time.time()-startTimeFirst;
+    throughput = payloadLen*totalTransNum/totalTime
+    goodput = payloadLen*(pktNum-len(retranListAll))/totalTime
+
+    print("Total TX Time : {} seconds".format(totalTime))
+    print("Number of reTX : {}".format(retransNum))
+   # print("Number of reTX : {}".format(retransNum1))
+    print("Number of coarse TimeOut : {}".format(coarseTONum))
+    print("Throughput(Bps) : {}".format(throughput))
+    print("Goodput(Bps) : {}".format(goodput))
     net.shutdown()
